@@ -10,5 +10,16 @@ python:
 install:
   - pip install -r requirements_dev.txt
 script:
+  - pytest src/test_*.py --cov=handler --cov-fail-under=100
   - pycodestyle src/*py --ignore=E501
-  - pytest src/test_handler.py --cov=handler --cov-fail-under=90 --cov-report
+  - aws cloudformation validate-template --template-body file://cf.yaml
+after_success:
+  - coveralls
+before_deploy: aws cloudformation package --template-file cf.yaml --s3-bucket ${BUCKET_NAME} --output-template-file out.yaml
+deploy:
+  provider: script
+  script: aws cloudformation deploy --template-file out.yaml --stack-name devops-alphaville --capabilities CAPABILITY_IAM
+  skip_cleanup: true
+  on:
+    all_branches: true
+    python: "3.6"
